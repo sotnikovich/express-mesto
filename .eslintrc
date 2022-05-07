@@ -11,7 +11,8 @@
     ],
     "indent": [
       "error",
-      4
+      4,
+      12
     ],
     "eol-last": [
       "error",

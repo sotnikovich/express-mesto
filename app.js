@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const usersRoutes = require('./routes/users');
 const cardsRouter = require('./routes/cards');
+const errorPathRouter = require('./routes/errorPath');
 
 const { PORT = 3000 } = process.env;
 mongoose.connect('mongodb://localhost:27017/mestodb');
@@ -19,6 +20,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/users', usersRoutes);
 app.use('/cards', cardsRouter);
+app.use(errorPathRouter);
 app.listen(PORT, () => {
     console.log(`Слушаем ${PORT} порт`);
 });
