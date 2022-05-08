@@ -11,16 +11,14 @@ mongoose.connect('mongodb://localhost:27017/mestodb');
 const app = express();
 
 app.use((req, res, next) => {
-    req.user = {
-        _id: '627636f1e9903435b3700f2c',
-    };
-    next();
+  req.user = {
+    _id: '627636f1e9903435b3700f2c',
+  };
+  next();
 });
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/users', usersRoutes);
 app.use('/cards', cardsRouter);
 app.use(errorPathRouter);
-app.listen(PORT, () => {
-    console.log(`Слушаем ${PORT} порт`);
-});
+app.listen(PORT);

@@ -8,21 +8,6 @@
           "_id"
         ]
       }
-    ],
-    "indent": [
-      "error",
-      4,
-      12
-    ],
-    "eol-last": [
-      "error",
-      "never"
-    ],
-    "consistent-return": [
-      "error",
-      {
-        "treatUndefinedAsUnspecified": false
-      }
     ]
   }
 }
