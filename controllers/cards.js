@@ -1,4 +1,6 @@
 const Card = require('../models/card');
+const NotFoundError = require('../errors/NotFoundError');
+const BadRequestError = require('../errors/BadRequestError');
 
 module.exports.getCards = (req, res) => {
   Card.find({})
@@ -53,19 +55,21 @@ module.exports.dislikeCard = (req, res) => {
     });
 };
 
-module.exports.deleteCard = (req, res) => {
+module.exports.deleteCard = (req, res, next) => {
   Card.findByIdAndRemove(req.params.cardId)
-    .orFail(new Error('IncorrectCardID'))
+    .orFail(() => {
+      throw new NotFoundError('Карточка не найдена');
+    })
     .then((card) => {
-      res.status(200).send(card);
+      if (!card) {
+        next(new NotFoundError('Карточка не найдена'));
+      }
+      res.status(200).send({ data: card, message: 'Карточка удалена' });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({ message: 'Переданы некорректные данные для удаления карточки' });
+        next(new BadRequestError({ message: 'Переданы некорректные данные' }));
       }
-      if (err.message === 'IncorrectCardID') {
-        return res.status(404).send({ message: 'Карточка не найдена' });
-      }
-      return res.status(500).send({ message: 'Произошла ошибка' });
+      next(err);
     });
 };
