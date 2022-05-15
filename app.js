@@ -22,7 +22,7 @@ app.use('/users', require('./routes/users'));
 app.use('/cards', require('./routes/cards'));
 
 app.use(errorLogger);
-app.use(errors());
+app.use(errors);
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
   console.log(err);
