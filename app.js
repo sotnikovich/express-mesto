@@ -7,6 +7,7 @@ const { login, createUser } = require('./controllers/users');
 const auth = require('./middlewares/auth');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { userValidation, loginValidation } = require('./middlewares/validation');
+const errorHandler = require('./middlewares/errorHandler');
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -18,22 +19,12 @@ app.use(requestLogger);
 app.post('/signup', userValidation, createUser);
 app.post('/signin', loginValidation, login);
 app.use(auth);
+app.use(require('./routes/errorPath'));
 app.use('/users', require('./routes/users'));
 app.use('/cards', require('./routes/cards'));
 
 app.use(errorLogger);
-app.use(errors);
-app.use((err, req, res, next) => {
-  const { statusCode = 500, message } = err;
-  console.log(err);
-  res
-    .status(statusCode)
-    .send({
-      message: statusCode === 500
-        ? 'На сервере произошла ошибка'
-        : message,
-    });
-  next();
-});
+app.use(errors());
+app.use(errorHandler);
 mongoose.connect('mongodb://localhost:27017/mestodb');
 app.listen(PORT);
