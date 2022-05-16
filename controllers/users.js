@@ -133,12 +133,10 @@ module.exports.login = (req, res, next) => {
         httpOnly: true,
         sameSite: true,
       });
-      res.status(201).send({ message: 'Авторизация успешна', token });
+      res.status(200).send({ message: 'Авторизация успешна', token });
     })
-    .catch((err) => {
-      if (err.message === 'IncorrectEmail') {
-        next(new Unauthorized('Не правильный логин или пароль'));
-      }
-      next(err);
-    });
+    .catch(() => {
+      throw new Unauthorized('Неправильный логин или пароль');
+    })
+    .catch(next);
 };
