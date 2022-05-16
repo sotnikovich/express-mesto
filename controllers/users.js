@@ -95,12 +95,9 @@ module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
     .orFail(() => {
-      throw new BadRequest('Переданы некорректные данные');
+      throw new NotFoundError('Переданы некорректные данные');
     })
     .then((user) => {
-      if (!user) {
-        next(new BadRequest('Переданы некорректные данные'));
-      }
       res.status(200).send({ data: user });
     })
     .catch((err) => {

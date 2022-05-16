@@ -14,11 +14,15 @@ module.exports.getCards = (req, res, next) => {
     .catch(next);
 };
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link, owner = req.user._id } = req.body;
   Card.create({ name, link, owner })
-    .then((cards) => res.status(200).send({ cards }))
-    .catch((err) => res.status(err.message ? 400 : 500).send({ message: err.message || 'Ошибка на сервере' }));
+    .then((card) => res.status(201).send({ card }))
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequest('Некорректные данные при создании карточки'));
+      }
+    });
 };
 
 module.exports.likeCard = (req, res, next) => {
@@ -61,11 +65,10 @@ module.exports.deleteCard = (req, res, next) => {
         next(new NotFoundError('Карточка не найдена'));
       }
       if (card.owner.toString() === req.user._id.toString()) {
-        card.remove();
-        res.status(200).send({ data: card, message: 'Карточка удалена' });
-      } else {
-        next(new Forbidden('Карточку создал другой пользователь'));
+        return card.remove()
+          .then(() => res.status(200).send({ data: card, message: 'Карточка удалена' }));
       }
+      return next(new Forbidden('Нельзя удалить чужую карточку'));
     })
     .catch((err) => {
       if (err.name === 'CastError') {
