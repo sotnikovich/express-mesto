@@ -1,14 +1,45 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const isAuthorized = require('../utils/isAuthorized');
 const NotFoundError = require('../errors/NotFoundError');
 const Unauthorized = require('../errors/Unauthorized');
 const BadRequest = require('../errors/BadRequest');
 const Conflict = require('../errors/Conflict');
-const Forbidden = require('../errors/Forbidden');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
+      res
+        .cookie('jwt', token, {
+          maxAge: 3600000 * 24 * 7,
+          httpOnly: true,
+          sameSite: true,
+        })
+        .status(200).send({ token });
+    })
+    .catch(() => {
+      throw new Unauthorized('Авторизация не пройдена');
+    })
+    .catch(next);
+};
+
+module.exports.getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (user) {
+      res.status(200).send(user);
+    } else {
+      throw new NotFoundError('Пользователь не найден');
+    }
+  } catch (err) {
+    next(err);
+  }
+};
 
 module.exports.createUser = (req, res, next) => {
   const {
@@ -47,14 +78,9 @@ module.exports.createUser = (req, res, next) => {
     });
 };
 
-module.exports.getUser = (req, res, next) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
-    .then((users) => {
-      if (users) {
-        res.status(200).send({ users });
-      }
-      throw new NotFoundError('Нет пользователя с таким id');
-    })
+    .then((users) => res.status(200).send(users))
     .catch(next);
 };
 
@@ -76,23 +102,6 @@ module.exports.findUser = (req, res, next) => {
         next(err);
       }
     });
-};
-
-module.exports.getUserMe = (req, res, next) => {
-  const token = req.headers.authorization;
-
-  if (!isAuthorized(token)) {
-    throw new Forbidden('Доступ запрещен');
-  }
-
-  User.findById(req.user._id)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Нет пользователя с таким id');
-      }
-      res.status(200).send({ data: user });
-    })
-    .catch(next);
 };
 
 module.exports.updateUser = (req, res, next) => {
@@ -120,21 +129,6 @@ module.exports.updateAvatar = (req, res, next) => {
         res.status(200).send({ user });
       }
       throw new NotFoundError('Нет пользователя с таким id');
-    })
-    .catch(next);
-};
-
-module.exports.login = (req, res, next) => {
-  const { email, password } = req.body;
-
-  return User.findUserByCredentials(email, password)
-    .then((user) => {
-      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
-
-      return res.send({ jwt: token });
-    })
-    .catch(() => {
-      throw new Unauthorized('Авторизация не пройдена');
     })
     .catch(next);
 };
