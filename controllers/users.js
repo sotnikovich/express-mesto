@@ -1,10 +1,14 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const isAuthorized = require('../utils/isAuthorized');
 const NotFoundError = require('../errors/NotFoundError');
 const Unauthorized = require('../errors/Unauthorized');
 const BadRequest = require('../errors/BadRequest');
 const Conflict = require('../errors/Conflict');
+const Forbidden = require('../errors/Forbidden');
+
+const { NODE_ENV, JWT_SECRET } = process.env;
 
 module.exports.createUser = (req, res, next) => {
   const {
@@ -75,20 +79,20 @@ module.exports.findUser = (req, res, next) => {
 };
 
 module.exports.getUserMe = (req, res, next) => {
+  const token = req.headers.authorization;
+
+  if (!isAuthorized(token)) {
+    throw new Forbidden('Доступ запрещен');
+  }
+
   User.findById(req.user._id)
     .then((user) => {
-      if (!user._id) {
-        next(new NotFoundError('Пользователь не найден'));
+      if (!user) {
+        throw new NotFoundError('Нет пользователя с таким id');
       }
-      res.status(200).send(user);
+      res.status(200).send({ data: user });
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные.'));
-      } else {
-        next(err);
-      }
-    });
+    .catch(next);
 };
 
 module.exports.updateUser = (req, res, next) => {
@@ -122,18 +126,15 @@ module.exports.updateAvatar = (req, res, next) => {
 
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
+
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
-      res.cookie('jwt', token, {
-        maxAge: 3600000 * 24 * 7,
-        httpOnly: true,
-        sameSite: true,
-      });
-      res.status(200).send({ message: 'Авторизация успешна', token });
+      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
+
+      return res.send({ jwt: token });
     })
     .catch(() => {
-      throw new Unauthorized('Неправильный логин или пароль');
+      throw new Unauthorized('Авторизация не пройдена');
     })
     .catch(next);
 };
